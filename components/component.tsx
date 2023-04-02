@@ -7,33 +7,60 @@ import React from 'react';
 
 import { ThreeDots } from 'react-loader-spinner';
 
+type Query = {
+  slot: number;
+  operator: number;
+  thresholds: number[];
+};
+
+type SignatureData = {
+  pub_key_x: number[];
+  pub_key_y: number[];
+  signature: number[];
+  hashed_message: number[];
+};
+
+type Input = {
+  values: number[];
+  query: Query;
+  signatureData: SignatureData;
+};
+
 function Component() {
-  const [input, setInput] = useState({ x: '', y: '' });
+  const [input, setInput] = useState<Input>({
+    values: [],
+    query: { slot: 0, operator: 0, thresholds: [] },
+    signatureData: {
+      pub_key_x: [],
+      pub_key_y: [],
+      signature: [],
+      hashed_message: [],
+    },
+  });
   const [pending, setPending] = useState(false);
   const [acir, setAcir] = useState(null);
   const [proof, setProof] = useState(null);
   const [verification, setVerification] = useState(false);
 
-  // Handles input state
-  const handleChange = e => {
+  const handleJsonChange = e => {
     e.preventDefault();
-    setInput({ ...input, [e.target.name]: e.target.value });
+    try {
+      const jsonInput = JSON.parse(e.target.value);
+      setInput(jsonInput);
+    } catch (err) {
+      toast.error('Invalid JSON input');
+    }
   };
 
-  // Calculates proof
-  const calculateProof = async () => {
-    // only launch if we do have an acir to calculate the proof from
+  const calculateProof = async (userInput: Input) => {
     const acir = await getAcir();
     setAcir(acir);
 
-    // set a pending state to show a spinner
     setPending(true);
 
     if (acir) {
-      // launching a new worker for the proof calculation
       const worker = new Worker(new URL('../utils/prover.ts', import.meta.url));
 
-      // handling the response from the worker
       worker.onmessage = e => {
         if (e.data instanceof Error) {
           toast.error('Error while calculating proof');
@@ -45,8 +72,7 @@ function Component() {
         }
       };
 
-      // sending the acir and input to the worker
-      worker.postMessage({ acir, input });
+      worker.postMessage({ acir, input: userInput });
     }
   };
 
@@ -105,9 +131,12 @@ function Component() {
       <h1>Example starter</h1>
       <h2>This circuit checks that x and y are the same</h2>
       <p>Try it!</p>
-      <input name="x" type={'text'} onChange={handleChange} value={input.x} />
-      <input name="y" type={'text'} onChange={handleChange} value={input.y} />
-      <button onClick={calculateProof}>Calculate proof</button>
+      <textarea
+        name="jsonInput"
+        onChange={handleJsonChange}
+        style={{ width: '100%', height: '200px' }}
+      />
+      <button onClick={() => calculateProof(input)}>Calculate proof</button>
       {pending && <ThreeDots wrapperClass="spinner" color="#000000" height={100} width={100} />}
     </div>
   );
