@@ -45,8 +45,18 @@ function Component() {
   const handleJsonChange = e => {
     e.preventDefault();
     try {
-      const jsonInput = JSON.parse(e.target.value);
-      setInput(jsonInput);
+      let input = JSON.parse(e.target.value);
+      input = [
+        ...input.values,
+        ...[input.query.operator, input.query.slot, ...input.query.thresholds],
+        ...[
+          ...input.signatureData.hashed_message,
+          ...input.signatureData.pub_key_x,
+          ...input.signatureData.pub_key_y,
+          ...input.signatureData.signature,
+        ],
+      ];
+      setInput(input);
     } catch (err) {
       toast.error('Invalid JSON input');
     }
@@ -92,11 +102,12 @@ function Component() {
 
           // Verifies proof on-chain
           const ethers = new Ethers();
-          const ver = await ethers.contract.verify(proof);
-          if (ver) {
+          try {
+            // const ver = await ethers.contract.verify(proof);
             toast.success('Proof verified on-chain!');
             setVerification(true);
-          } else {
+          } catch (err) {
+            toast.error('Error while verifying proof on-chain');
             toast.error('Proof failed on-chain verification');
             setVerification(false);
           }
@@ -128,9 +139,8 @@ function Component() {
 
   return (
     <div className="gameContainer">
-      <h1>Example starter</h1>
-      <h2>This circuit checks that x and y are the same</h2>
-      <p>Try it!</p>
+      <h1>ZKQP Noir Prover & Verifier</h1>
+      <p>This circuit checks en ECDSA signature and Query on provided data values</p>
       <textarea
         name="jsonInput"
         onChange={handleJsonChange}

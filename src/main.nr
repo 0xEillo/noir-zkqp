@@ -48,8 +48,8 @@ fn slotValue(values: [Field], slot: Field) -> Field {
 fn operatorCheck(value: Field, thresholds: [Field], operator: Field) {
 
     let threshold = thresholds[0];
-    let inVal = thresholds.any(|a| a == value);
-    let outVal = thresholds.any(|a| a != value);
+    let inSet = thresholds.any(|a| a == value);
+    let outSet = thresholds.any(|a| a != value);
 
     if(operator == 0) {
         constrain value != threshold;
@@ -64,23 +64,41 @@ fn operatorCheck(value: Field, thresholds: [Field], operator: Field) {
             lt(value, threshold)
         } 
     else if(operator == 4) {
-        constrain inVal;
+        constrain inSet;
     }
     else if (operator == 5) {
-        constrain outVal;
+        constrain outSet;
+    } else if (operator == 6) {
+         inRange(value, thresholds)
+    } else if (operator == 7) {
+        outRange(value, thresholds)
     }
     
 }
 
-// // // // Prove that values x is greater than y
+// Prove that values x is greater than y
 fn gt(value : Field, threshold : Field) {
     let value = value as u96;
     let threshold = threshold as u96; 
     constrain value > threshold;
 }
-// // // // Prove that values x is less than y
+// Prove that values x is less than y
 fn lt(value : Field, threshold: Field) {
     let value = value as u96;
     let threshold = threshold as u96; 
      constrain value < threshold;
+}
+
+fn inRange(value: Field, thresholds: [Field]) {
+    let lowerBound = thresholds[0];
+    let upperBound = thresholds[1];
+    gt(value, lowerBound);
+    lt(value, upperBound);
+}
+
+fn outRange(value: Field, thresholds: [Field]) {
+    let lowerBound = thresholds[0] as u96;
+    let upperBound = thresholds[1] as u96;
+    let value = value as u96;
+    constrain value < lowerBound | value > upperBound;
 }
